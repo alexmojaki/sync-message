@@ -6,9 +6,12 @@ import * as lib from "../lib"
 async function init() {
   await navigator.serviceWorker.register("./sw.js");
   const channels = [
-    await lib.makeServiceWorkerChannel(),
+    await lib.makeServiceWorkerChannel({timeout: 1000}),
     lib.makeAtomicsChannel(),
   ]
+  if (!channels[0]) {
+    location.reload();
+  }
   const {testWorker} = Comlink.wrap(new Worker());
 
   for (const {channel, writeInput} of channels) {
