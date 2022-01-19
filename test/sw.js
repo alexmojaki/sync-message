@@ -1,6 +1,13 @@
 import * as lib from "../lib"
 
-lib.setupServiceWorker();
+const fetchListener = lib.serviceWorkerFetchListener();
+
+addEventListener('fetch', function (e) {
+  if (fetchListener(e)) {
+    return;
+  }
+  e.respondWith(fetch(e.request));
+});
 
 addEventListener('install', function (e) {
   e.waitUntil(self.skipWaiting());
