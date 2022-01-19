@@ -4,8 +4,9 @@ import * as Comlink from "comlink";
 import * as lib from "../lib"
 
 async function init() {
+  await navigator.serviceWorker.register("./sw.js");
   const channels = [
-    lib.makeServiceWorkerChannel({serviceWorkerPath: "./sw.js"}),
+    await lib.makeServiceWorkerChannel(),
     lib.makeAtomicsChannel(),
   ]
   const {testWorker} = Comlink.wrap(new Worker());
