@@ -5,8 +5,8 @@ import * as lib from "../lib"
 
 async function init() {
   const channels = [
-    await lib.makeChannel(false, {serviceWorkerPath: "./sw.js"}),
-    await lib.makeChannel(true, {serviceWorkerPath: "./sw.js"}),
+    lib.makeServiceWorkerChannel({serviceWorkerPath: "./sw.js"}),
+    lib.makeAtomicsChannel(),
   ]
   const {testWorker} = Comlink.wrap(new Worker());
 
