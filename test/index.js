@@ -12,16 +12,24 @@ async function init() {
   if (!channels[0]) {
     location.reload();
   }
-  const {testWorker} = Comlink.wrap(new Worker());
+  const {testRead, testInterrupt} = Comlink.wrap(new Worker());
 
   for (const {channel, writeInput} of channels) {
     for (let i = 0; i < 100; i++) {
       const messageId = randomString();
       const message = randomString();
-      const readPromise = testWorker(channel, messageId);
+      const readPromise = testRead(channel, messageId);
       await writeInput(message, messageId);
       const response = await readPromise;
       console.log(response === message);
+    }
+  }
+
+  for (const {channel} of channels) {
+    for (let i = 0; i < 3; i++) {
+      const readPromise = testInterrupt(channel);
+      const response = await readPromise;
+      console.log(response);
     }
   }
 }
