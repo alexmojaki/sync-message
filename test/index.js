@@ -5,13 +5,16 @@ import * as lib from "../lib"
 
 async function runTests() {
   await navigator.serviceWorker.register("./sw.js");
-  const channels = [
-    await lib.makeServiceWorkerChannel({timeout: 1000}),
-    lib.makeAtomicsChannel(),
-  ]
-  if (!channels[0]) {
+  const serviceWorkerChannel = await lib.makeServiceWorkerChannel({timeout: 1000});
+  if (!serviceWorkerChannel) {
     location.reload();
   }
+
+  const channels = [serviceWorkerChannel];
+  if (typeof SharedArrayBuffer !== undefined) {
+    channels.push(lib.makeAtomicsChannel());
+  }
+
   const {testRead, testInterrupt} = Comlink.wrap(new Worker());
   const testResults = []
 
