@@ -3,7 +3,7 @@ import * as Comlink from "comlink";
 
 import * as lib from "../lib"
 
-async function init() {
+async function runTests() {
   await navigator.serviceWorker.register("./sw.js");
   const channels = [
     await lib.makeServiceWorkerChannel({timeout: 1000}),
@@ -13,6 +13,7 @@ async function init() {
     location.reload();
   }
   const {testRead, testInterrupt} = Comlink.wrap(new Worker());
+  const testResults = []
 
   for (const {channel, writeInput} of channels) {
     for (let i = 0; i < 100; i++) {
@@ -21,21 +22,39 @@ async function init() {
       const readPromise = testRead(channel, messageId);
       await writeInput(message, messageId);
       const response = await readPromise;
-      console.log(response === message);
+      testResults.push({
+        message,
+        response,
+        messageId,
+        passed: response === message,
+        channel: channel.type,
+        i,
+        test: "read",
+      });
     }
   }
 
   for (const {channel} of channels) {
     for (let i = 0; i < 3; i++) {
       const readPromise = testInterrupt(channel);
-      const response = await readPromise;
-      console.log(response);
+      const passed = await readPromise;
+      testResults.push({
+        passed,
+        channel: channel.type,
+        i,
+        test: "interrupt",
+      });
     }
   }
+
+  window.testResults = testResults;
+  document.getElementsByTagName("body")[0].innerText =
+    `Passed ${testResults.filter(t => t.passed).length} / ${testResults.length}`;
+  console.log(testResults);
 }
 
-export function randomString() {
+function randomString() {
   return `${+new Date()} ${Math.random()} ${Math.random()} ${Math.random()}`
 }
 
-init();
+runTests();
