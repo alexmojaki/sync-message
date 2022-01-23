@@ -11,7 +11,7 @@ async function runTests() {
   }
 
   const channels = [serviceWorkerChannel];
-  if (typeof SharedArrayBuffer !== undefined) {
+  if (typeof SharedArrayBuffer !== "undefined") {
     channels.push(lib.makeAtomicsChannel());
   }
 
