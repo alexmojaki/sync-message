@@ -48,9 +48,13 @@ async function runTests() {
   }
 
   window.testResults = testResults;
-  document.getElementsByTagName("body")[0].innerText =
-    `Passed ${testResults.filter(t => t.passed).length} / ${testResults.length}`;
   console.log(testResults);
+
+  let numPassed = testResults.filter(t => t.passed).length;
+  let numTotal = testResults.length;
+  let finalResult = numPassed === numTotal ? 'PASSED' : 'FAILED';
+  document.getElementsByTagName("body")[0].innerText =
+    `${numPassed} / ${numTotal} : ${finalResult}!`;
 }
 
 function randomString() {
