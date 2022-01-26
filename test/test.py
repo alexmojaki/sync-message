@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -43,25 +44,22 @@ def get_driver():
 
 def test_lib():
     driver = get_driver()
+    status = "passed"
     try:
         _tests(driver)
     except Exception:
-        driver.execute_script(
-            'browserstack_executor: {'
-            '"action": "setSessionStatus", '
-            '"arguments": {"status":"failed",'
-            '"reason": "Oops! my sample test failed"}'
-            '}'
-        )
-    else:
-        driver.execute_script(
-            'browserstack_executor: {'
-            '"action": "setSessionStatus", '
-            '"arguments": {"status":"passed", '
-            '"reason": "Yaay! my sample test passed"}'
-            '}'
-        )
+        status = "failed"
     finally:
+        if command_executor:
+            driver.execute_script(
+                "browserstack_executor:"
+                + json.dumps(
+                    {
+                        "action": "setSessionStatus",
+                        "arguments": {"status": status},
+                    }
+                )
+            )
         driver.save_screenshot(str(assets_dir / "screenshot.png"))
         (assets_dir / "logs.txt").write_text(
             "\n".join(entry["message"] for entry in driver.get_log("browser"))
