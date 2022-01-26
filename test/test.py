@@ -15,13 +15,8 @@ command_executor = os.environ.get("COMMAND_EXECUTOR")
 def get_driver():
     if command_executor:
         desired_capabilities = {
-            "os_version": "11",
-            "resolution": "1024x768",
             "browser": "Chrome",
-            "browser_version": "latest",
             "os": "Windows",
-            "name": "BStack-[Python] Sample Test",  # test name
-            "build": "BStack Build Number 1",  # CI/CD job or build name
             "browserstack.local": "true",
         }
         driver = webdriver.Remote(
