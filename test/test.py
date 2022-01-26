@@ -64,7 +64,7 @@ def test_lib():
 
 def _tests(driver):
     driver.get("http://localhost:8080/")
-    div = driver.find_element_by_id("result")
-    print(div.text)
-    assert "PASSED" in div.text
-    assert "FAILED" not in div.text
+    text = driver.find_element_by_id("result").text
+    print(text)
+    assert "PASSED" in text
+    assert "FAILED" not in text
