@@ -56,8 +56,8 @@ async function runTests() {
   let numPassed = testResults.filter(t => t.passed).length;
   let numTotal = testResults.length;
   let finalResult = numPassed === numTotal ? 'PASSED' : 'FAILED';
-  document.getElementsByTagName("body")[0].innerText =
-    `${numPassed} / ${numTotal} : ${finalResult}!`;
+  document.getElementsByTagName("body")[0].innerHTML =
+    `<div id=result>${numPassed} / ${numTotal} : ${finalResult}!</div>`;
 }
 
 function randomString() {
