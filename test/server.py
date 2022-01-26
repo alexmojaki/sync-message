@@ -12,7 +12,7 @@ class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
 
 
 server = HTTPServer(
-    ("localhost", 8000),
+    ("localhost", int(os.environ.get("TEST_SERVER_PORT", 8000))),
     partial(MyHTTPRequestHandler, directory="dist"),
 )
 

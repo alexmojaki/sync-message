@@ -5,7 +5,7 @@ import * as lib from "../lib"
 
 async function runTests() {
   await navigator.serviceWorker.register("./sw.js");
-  const serviceWorkerChannel = await lib.makeServiceWorkerChannel({timeout: 1000});
+  const serviceWorkerChannel = await lib.makeServiceWorkerChannel();
   if (!serviceWorkerChannel) {
     location.reload();
   }
