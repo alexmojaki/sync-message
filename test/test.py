@@ -14,15 +14,10 @@ assets_dir.mkdir(exist_ok=True)
 command_executor = os.environ.get("COMMAND_EXECUTOR")
 build = str(datetime.now())
 
-def get_driver(browser, os_name):
+def get_driver(caps):
     if command_executor:
         desired_capabilities = {
-            "browser": browser,
-            "os": os_name,
-            "os_version": {
-                "Windows": "11",
-                "OS X": "Monterey",
-            }[os_name],
+            **caps,
             "browserstack.local": "true",
             "acceptSslCerts": "true",
             "build": build,
@@ -45,27 +40,37 @@ def get_driver(browser, os_name):
     return driver
 
 
-def main():
+def params():
     if command_executor:
-        for kwargs in [
-            dict(os_name="Windows", browser="Chrome"),
-            dict(os_name="Windows", browser="Firefox"),
-            dict(os_name="Windows", browser="Edge"),
-            dict(os_name="OS X", browser="Chrome"),
-            dict(os_name="OS X", browser="Firefox"),
-            dict(os_name="OS X", browser="Safari"),
+        for os_name, extra_browser, os_versions in [
+            ["Windows", "Edge", ["11"]],
+            ["OS X", "Safari", ["Monterey"]],
         ]:
-            if kwargs["browser"] == "Firefox":
-                kwargs["url"] = "https://localhost:8001"
-            else:
-                kwargs["url"] = "http://localhost:8000"
-            Thread(target=lambda: one_test(**kwargs)).start()
+            for browser in ["Chrome", "Firefox", extra_browser]:
+                if browser == "Firefox":
+                    url = "https://localhost:8001"
+                else:
+                    url = "http://localhost:8000"
+                for os_version in os_versions:
+                    yield dict(
+                        caps=dict(
+                            os=os_name,
+                            os_version=os_version,
+                            browser=browser,
+                        ),
+                        url=url,
+                    )
     else:
-        one_test(None, None, "http://localhost:8080/")
+        yield dict(caps=None, url="http://localhost:8080/")
 
 
-def one_test(browser, os_name, url):
-    driver = get_driver(browser, os_name)
+def main():
+    for kwargs in params():
+        Thread(target=lambda: one_test(**kwargs)).start()
+
+
+def one_test(caps, url):
+    driver = get_driver(caps)
     status = "passed"
     try:
         _tests(driver, url)
