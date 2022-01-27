@@ -2,8 +2,8 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from threading import Thread
 
+import pytest
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.chrome.options import Options
@@ -11,11 +11,13 @@ from selenium.webdriver.chrome.options import Options
 assets_dir = Path(__file__).parent / "test_assets"
 assets_dir.mkdir(exist_ok=True)
 
-command_executor = os.environ.get("COMMAND_EXECUTOR")
+browserstack_username = os.environ.get("BROWSERSTACK_USERNAME")
+browserstack_key = os.environ.get("BROWSERSTACK_ACCESS_KEY")
 build = str(datetime.now())
 
+
 def get_driver(caps):
-    if command_executor:
+    if browserstack_key:
         desired_capabilities = {
             **caps,
             "browserstack.local": "true",
@@ -23,7 +25,8 @@ def get_driver(caps):
             "build": build,
         }
         driver = webdriver.Remote(
-            command_executor=command_executor,
+            command_executor=f"https://{browserstack_username}:{browserstack_key}"
+            f"@hub-cloud.browserstack.com/wd/hub",
             desired_capabilities=desired_capabilities,
         )
     else:
@@ -41,7 +44,7 @@ def get_driver(caps):
 
 
 def params():
-    if command_executor:
+    if browserstack_key:
         for os_name, extra_browser, os_versions in [
             ["Windows", "Edge", ["11"]],
             ["OS X", "Safari", ["Monterey"]],
@@ -52,24 +55,18 @@ def params():
                 else:
                     url = "http://localhost:8000"
                 for os_version in os_versions:
-                    yield dict(
-                        caps=dict(
-                            os=os_name,
-                            os_version=os_version,
-                            browser=browser,
-                        ),
-                        url=url,
+                    caps = dict(
+                        os=os_name,
+                        os_version=os_version,
+                        browser=browser,
                     )
+                    yield caps, url
     else:
-        yield dict(caps=None, url="http://localhost:8080/")
+        yield None, "http://localhost:8080/"
 
 
-def main():
-    for kwargs in params():
-        Thread(target=lambda: one_test(**kwargs)).start()
-
-
-def one_test(caps, url):
+@pytest.mark.parametrize("caps,url", list(params()))
+def test_lib(caps, url):
     driver = get_driver(caps)
     status = "passed"
     try:
@@ -77,7 +74,7 @@ def one_test(caps, url):
     except Exception:
         status = "failed"
     finally:
-        if command_executor:
+        if browserstack_key:
             driver.execute_script(
                 "browserstack_executor:"
                 + json.dumps(
@@ -102,6 +99,3 @@ def _tests(driver, url):
     print(text)
     assert "PASSED" in text
     assert "FAILED" not in text
-
-
-main()
