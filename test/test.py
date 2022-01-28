@@ -13,7 +13,7 @@ assets_dir.mkdir(exist_ok=True)
 
 browserstack_username = os.environ.get("BROWSERSTACK_USERNAME")
 browserstack_key = os.environ.get("BROWSERSTACK_ACCESS_KEY")
-build = str(datetime.now())
+build = os.environ.get("BROWSERSTACK_BUILD_NAME", str(datetime.now()))
 
 
 def get_driver(caps):
@@ -23,6 +23,7 @@ def get_driver(caps):
             "browserstack.local": "true",
             "acceptSslCerts": "true",
             "build": build,
+            "project": "sync-message",
         }
         driver = webdriver.Remote(
             command_executor=f"https://{browserstack_username}:{browserstack_key}"

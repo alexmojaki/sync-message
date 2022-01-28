@@ -23,8 +23,7 @@
     "format": "prettier --write '**/*.*' && eslint . --fix",
     "lint": "prettier --check '**/*.*' && eslint .",
     "prepare": "yarn build",
-    "semantic-release": "semantic-release",
-    "test": "jest --coverage && yarn lint"
+    "semantic-release": "semantic-release"
   },
   "babel": {
     "presets": [
