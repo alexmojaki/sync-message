@@ -1,7 +1,7 @@
 import Worker from "worker-loader!./worker.js";
 import * as Comlink from "comlink";
 
-import * as lib from "../lib"
+import * as lib from "../lib";
 
 async function runTests() {
   await navigator.serviceWorker.register("./sw.js");
@@ -15,10 +15,10 @@ async function runTests() {
     channels.push(lib.makeAtomicsChannel());
   }
 
-  const {testRead, testInterrupt} = Comlink.wrap(new Worker());
-  const testResults = []
+  const { testRead, testInterrupt } = Comlink.wrap(new Worker());
+  const testResults = [];
 
-  for (const {channel, writeInput} of channels) {
+  for (const { channel, writeInput } of channels) {
     for (let i = 0; i < 100; i++) {
       const messageId = randomString();
       const message = randomString();
@@ -37,7 +37,7 @@ async function runTests() {
     }
   }
 
-  for (const {channel} of channels) {
+  for (const { channel } of channels) {
     for (let i = 0; i < 3; i++) {
       const readPromise = testInterrupt(channel);
       const passed = await readPromise;
@@ -53,15 +53,15 @@ async function runTests() {
   window.testResults = testResults;
   console.log(testResults);
 
-  let numPassed = testResults.filter(t => t.passed).length;
+  let numPassed = testResults.filter((t) => t.passed).length;
   let numTotal = testResults.length;
-  let finalResult = numPassed === numTotal ? 'PASSED' : 'FAILED';
-  document.getElementsByTagName("body")[0].innerHTML =
-    `<div id=result>${numPassed} / ${numTotal} : ${finalResult}!</div>`;
+  let finalResult = numPassed === numTotal ? "PASSED" : "FAILED";
+  const body = document.getElementsByTagName("body")[0];
+  body.innerHTML = `<div id=result>${numPassed} / ${numTotal} : ${finalResult}!</div>`;
 }
 
 function randomString() {
-  return `${+new Date()} ${Math.random()} ${Math.random()} ${Math.random()}`
+  return `${+new Date()} ${Math.random()} ${Math.random()} ${Math.random()}`;
 }
 
 runTests();

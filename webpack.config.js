@@ -1,13 +1,13 @@
-const path = require('path');
+const path = require("path");
 
 module.exports = {
-  entry: './lib/index.js',
+  entry: "./lib/index.js",
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'index.js',
+    path: path.resolve(__dirname, "dist"),
+    filename: "index.js",
     library: {
-      name: 'syncWebWorker',
-      type: 'umd',
+      name: "syncWebWorker",
+      type: "umd",
     },
   },
 };
