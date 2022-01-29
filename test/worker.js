@@ -6,13 +6,16 @@ import * as lib from "../lib";
 import * as Comlink from "comlink";
 
 function testRead(channel, messageId) {
-  return lib.readChannel(channel, messageId, {timeout: 10});
+  return lib.readChannel(channel, messageId, {checkTimeout: 10});
 }
 
 function testInterrupt(channel) {
   const start = new Date();
   const timePassed = () => new Date() - start > 300;
-  lib.readChannel(channel, "messageId", {checkInterrupt: timePassed, timeout: 10});
+  lib.readChannel(channel, "messageId", {
+    checkInterrupt: timePassed,
+    checkTimeout: 10,
+  });
   return timePassed();
 }
 
