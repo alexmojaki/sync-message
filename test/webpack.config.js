@@ -17,5 +17,5 @@ module.exports = {
     path: __dirname + "/dist",
     filename: "[name].js",
   },
-  plugins: [new HtmlWebpackPlugin({ excludeChunks: ["sw"] })],
+  plugins: [new HtmlWebpackPlugin({excludeChunks: ["sw"]})],
 };

@@ -38,6 +38,7 @@
     ]
   },
   "prettier": {
+    "bracketSpacing": false,
     "trailingComma": "all"
   },
   "eslintConfig": {

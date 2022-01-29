@@ -15,10 +15,10 @@ async function runTests() {
     channels.push(lib.makeAtomicsChannel());
   }
 
-  const { testRead, testInterrupt } = Comlink.wrap(new Worker());
+  const {testRead, testInterrupt} = Comlink.wrap(new Worker());
   const testResults = [];
 
-  for (const { channel, writeInput } of channels) {
+  for (const {channel, writeInput} of channels) {
     for (let i = 0; i < 100; i++) {
       const messageId = randomString();
       const message = randomString();
@@ -37,7 +37,7 @@ async function runTests() {
     }
   }
 
-  for (const { channel } of channels) {
+  for (const {channel} of channels) {
     for (let i = 0; i < 3; i++) {
       const readPromise = testInterrupt(channel);
       const passed = await readPromise;
@@ -51,7 +51,9 @@ async function runTests() {
   }
 
   const {channel, writeInput} = serviceWorkerChannel;
-  let promises = [], test, localResults;
+  let promises = [],
+    test,
+    localResults;
 
   test = "concurrent";
   for (let i = 0; i < 100; i++) {
@@ -60,7 +62,14 @@ async function runTests() {
     const readPromise = testRead(channel, messageId);
     const writePromise = writeInput(message, messageId);
     promises.push(readPromise, writePromise);
-    testResults.push({test, channel: channel.type, readPromise, message, messageId, i});
+    testResults.push({
+      test,
+      channel: channel.type,
+      readPromise,
+      message,
+      messageId,
+      i,
+    });
   }
 
   localResults = [];

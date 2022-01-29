@@ -12,8 +12,8 @@ function testRead(channel, messageId) {
 function testInterrupt(channel) {
   const start = new Date();
   const timePassed = () => new Date() - start > 300;
-  lib.readChannel(channel, "messageId", { checkInterrupt: timePassed });
+  lib.readChannel(channel, "messageId", {checkInterrupt: timePassed});
   return timePassed();
 }
 
-Comlink.expose({ testRead, testInterrupt });
+Comlink.expose({testRead, testInterrupt});
