@@ -76,6 +76,7 @@ def test_lib(caps, url):
         _tests(driver, url)
     except Exception:
         status = "failed"
+        raise
     finally:
         if browserstack_key:
             driver.execute_script(
@@ -98,7 +99,8 @@ def test_lib(caps, url):
 
 def _tests(driver, url):
     driver.get(url)
-    text = driver.find_element_by_id("result").text
+    elem = driver.find_element_by_id("result")
+    text = elem.text
     print(text)
     assert "PASSED" in text
     assert "FAILED" not in text

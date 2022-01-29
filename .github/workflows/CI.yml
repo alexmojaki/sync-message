@@ -48,7 +48,9 @@ jobs:
           local-logging-level: 'all-logs'
           local-identifier: 'random'
       - name: Test
-        run: test/ci_test.sh
+        run: pip install pytest pytest-parallel selenium
+             cd test
+             test.sh
       - name: 'Stop BrowserStackLocal'
         uses: 'browserstack/github-actions/setup-local@master'
         with:
