@@ -50,6 +50,58 @@ async function runTests() {
     }
   }
 
+  const {channel, writeInput} = serviceWorkerChannel;
+  let promises = [], test, localResults;
+
+  test = "concurrent";
+  for (let i = 0; i < 100; i++) {
+    const messageId = randomString();
+    const message = randomString();
+    const readPromise = testRead(channel, messageId);
+    const writePromise = writeInput(message, messageId);
+    promises.push(readPromise, writePromise);
+    testResults.push({test, channel: channel.type, readPromise, message, messageId, i});
+  }
+
+  localResults = [];
+  test = "read_first";
+  for (let i = 0; i < 100; i++) {
+    const messageId = randomString();
+    const readPromise = testRead(channel, messageId);
+    promises.push(readPromise);
+    localResults.push({readPromise, messageId, i});
+  }
+  await lib.asyncSleep(500);
+  for (const result of localResults) {
+    const message = randomString();
+    const writePromise = writeInput(message, result.messageId);
+    promises.push(writePromise);
+    testResults.push({test, channel: channel.type, message, ...result});
+  }
+
+  localResults = [];
+  test = "write_first";
+  for (let i = 0; i < 100; i++) {
+    const messageId = randomString();
+    const message = randomString();
+    const writePromise = writeInput(message, messageId);
+    promises.push(writePromise);
+    localResults.push({message, messageId, i});
+  }
+  await lib.asyncSleep(500);
+  for (const result of localResults) {
+    const readPromise = testRead(channel, result.messageId);
+    promises.push(readPromise);
+    testResults.push({test, channel: channel.type, readPromise, ...result});
+  }
+
+  await Promise.all(promises);
+  for (const result of testResults) {
+    if ("readPromise" in result) {
+      result.passed = (await result.readPromise) === result.message;
+    }
+  }
+
   window.testResults = testResults;
   console.log(testResults);
 
