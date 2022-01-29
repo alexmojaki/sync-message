@@ -1,6 +1,6 @@
 import * as lib from "../lib";
 
-const fetchListener = lib.serviceWorkerFetchListener({readTimeout: 10});
+const fetchListener = lib.serviceWorkerFetchListener();
 
 addEventListener("fetch", function (e) {
   if (fetchListener(e)) {
