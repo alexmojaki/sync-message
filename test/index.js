@@ -23,8 +23,8 @@ async function runTests() {
       const messageId = randomString();
       const message = randomString();
       const readPromise = testRead(channel, messageId);
-      await writeInput(message, messageId);
-      const response = await readPromise;
+      await writeInput({message}, messageId);
+      const response = (await readPromise).message;
       testResults.push({
         message,
         response,
