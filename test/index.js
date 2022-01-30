@@ -17,7 +17,20 @@ async function runTests() {
 
   const {testRead, testInterrupt} = Comlink.wrap(new Worker());
   const testResults = [];
+  let test = "uuid";
 
+  for (let i = 0; i < 100; i++) {
+    const uuid = lib.uuidv4();
+    testResults.push({
+      uuid,
+      test,
+      i,
+      // e.g. 3676018a-94a4-4b07-81c2-dfa14b69b1fd
+      passed: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(uuid),
+    })
+  }
+
+  test = "read_serial";
   for (const {channel, writeInput} of channels) {
     for (let i = 0; i < 100; i++) {
       const messageId = randomString();
@@ -32,11 +45,12 @@ async function runTests() {
         passed: response === message,
         channel: channel.type,
         i,
-        test: "read",
+        test,
       });
     }
   }
 
+  test = "interrupt";
   for (const {channel} of channels) {
     for (let i = 0; i < 3; i++) {
       const readPromise = testInterrupt(channel);
@@ -45,14 +59,13 @@ async function runTests() {
         passed,
         channel: channel.type,
         i,
-        test: "interrupt",
+        test,
       });
     }
   }
 
   const {channel, writeInput} = serviceWorkerChannel;
   let promises = [],
-    test,
     localResults;
 
   test = "concurrent";
