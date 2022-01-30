@@ -19,4 +19,10 @@ function testInterrupt(channel) {
   return timePassed();
 }
 
-Comlink.expose({testRead, testInterrupt});
+function testSleep(ms, channel) {
+  const start = performance.now();
+  lib.syncSleep(ms, channel);
+  return performance.now() - start;
+}
+
+Comlink.expose({testRead, testInterrupt, testSleep});

@@ -15,7 +15,7 @@ async function runTests() {
     channels.push(lib.makeAtomicsChannel());
   }
 
-  const {testRead, testInterrupt} = Comlink.wrap(new Worker());
+  const {testRead, testInterrupt, testSleep} = Comlink.wrap(new Worker());
   const testResults = [];
   let test = "uuid";
 
@@ -26,15 +26,17 @@ async function runTests() {
       test,
       i,
       // e.g. 3676018a-94a4-4b07-81c2-dfa14b69b1fd
-      passed: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(uuid),
-    })
+      passed: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+        uuid,
+      ),
+    });
   }
 
   test = "read_serial";
   for (const {channel, writeInput} of channels) {
     for (let i = 0; i < 100; i++) {
-      const messageId = randomString();
-      const message = randomString();
+      const messageId = lib.uuidv4();
+      const message = lib.uuidv4();
       const readPromise = testRead(channel, messageId);
       await writeInput({message}, messageId);
       const response = (await readPromise).message;
@@ -70,8 +72,8 @@ async function runTests() {
 
   test = "concurrent";
   for (let i = 0; i < 100; i++) {
-    const messageId = randomString();
-    const message = randomString();
+    const messageId = lib.uuidv4();
+    const message = lib.uuidv4();
     const readPromise = testRead(channel, messageId);
     const writePromise = writeInput(message, messageId);
     promises.push(readPromise, writePromise);
@@ -88,14 +90,14 @@ async function runTests() {
   localResults = [];
   test = "read_first";
   for (let i = 0; i < 100; i++) {
-    const messageId = randomString();
+    const messageId = lib.uuidv4();
     const readPromise = testRead(channel, messageId);
     promises.push(readPromise);
     localResults.push({readPromise, messageId, i});
   }
   await lib.asyncSleep(500);
   for (const result of localResults) {
-    const message = randomString();
+    const message = lib.uuidv4();
     const writePromise = writeInput(message, result.messageId);
     promises.push(writePromise);
     testResults.push({test, channel: channel.type, message, ...result});
@@ -104,8 +106,8 @@ async function runTests() {
   localResults = [];
   test = "write_first";
   for (let i = 0; i < 100; i++) {
-    const messageId = randomString();
-    const message = randomString();
+    const messageId = lib.uuidv4();
+    const message = lib.uuidv4();
     const writePromise = writeInput(message, messageId);
     promises.push(writePromise);
     localResults.push({message, messageId, i});
@@ -124,6 +126,18 @@ async function runTests() {
     }
   }
 
+  test = "sync_sleep";
+  for (const ms of [100, 200, 400]) {
+    const slept = await testSleep(ms, channel);
+    testResults.push({
+      test,
+      channel: channel.type,
+      ms,
+      slept,
+      passed: slept > ms && slept < ms * 1.2,
+    });
+  }
+
   window.testResults = testResults;
   console.log(testResults);
 
@@ -132,10 +146,6 @@ async function runTests() {
   let finalResult = numPassed === numTotal ? "PASSED" : "FAILED";
   const body = document.getElementsByTagName("body")[0];
   body.innerHTML = `<div id=result>${numPassed} / ${numTotal} : ${finalResult}!</div>`;
-}
-
-function randomString() {
-  return `${+new Date()} ${Math.random()} ${Math.random()} ${Math.random()}`;
 }
 
 runTests();
