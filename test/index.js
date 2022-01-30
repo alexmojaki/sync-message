@@ -127,7 +127,7 @@ async function runTests() {
   }
 
   test = "sync_sleep";
-  for (const ms of [200, 500, 800]) {
+  for (const ms of [500, 800]) {
     const slept = await testSleep(ms, channel);
     testResults.push({
       test,
