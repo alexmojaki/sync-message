@@ -134,7 +134,7 @@ async function runTests() {
       channel: channel.type,
       ms,
       slept,
-      passed: slept > ms && slept < ms * 1.2,
+      passed: slept > ms && slept < ms * 1.5,
     });
   }
 
