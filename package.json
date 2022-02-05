@@ -10,7 +10,8 @@
   "license": "MIT",
   "author": "Alex Hall <alex.mojaki@gmail.com>",
   "sideEffects": false,
-  "main": "dist/",
+  "main": "dist/index.js",
+  "types": "dist/lib/index.d.ts",
   "module": "lib/",
   "files": [
     "dist/",
@@ -19,7 +20,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "babel lib/ -d dist/ --source-maps --ignore '**/*.test.js' --delete-dir-on-start",
+    "build": "rm -rf dist/ && webpack --mode production",
     "format": "prettier --write '**/*.*' && eslint . --fix",
     "lint": "prettier --check '**/*.*' && eslint .",
     "prepare": "yarn build",
