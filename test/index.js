@@ -1,4 +1,4 @@
-import Worker from "worker-loader!./worker.js";
+import Worker from "worker-loader!./worker";
 import * as Comlink from "comlink";
 
 import * as lib from "../lib";

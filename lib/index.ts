@@ -1,17 +1,17 @@
 const BASE_URL_SUFFIX = "/__SyncMessageServiceWorkerInput__";
 
-export function serviceWorkerFetchListener() {
-  const earlyMessages = {};
-  const resolvers = {};
+export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
+  const earlyMessages: { [messageId: string]: any } = {};
+  const resolvers: { [messageId: string]: (r: Response) => void } = {};
 
-  return (e) => {
+  return (e: FetchEvent): boolean => {
     const {url} = e.request;
     if (!url.includes(BASE_URL_SUFFIX)) {
       return false;
     }
 
-    async function respond() {
-      function success(d) {
+    async function respond(): Promise<Response> {
+      function success(d: any) {
         return new Response(JSON.stringify(d), {status: 200});
       }
 
@@ -53,13 +53,28 @@ export function serviceWorkerFetchListener() {
   };
 }
 
-export function asyncSleep(ms) {
+export function asyncSleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function makeAtomicsChannel(options = {}) {
+export interface AtomicsChannel {
+  type: "atomics";
+  data: Uint8Array;
+  meta: Int32Array;
+}
+
+export interface ServiceWorkerChannel {
+  type: "serviceWorker";
+  baseUrl: string;
+}
+
+export type Channel = AtomicsChannel | ServiceWorkerChannel;
+
+export function makeAtomicsChannel(
+  {bufferSize}: { bufferSize?: number } = {}
+): { channel: AtomicsChannel, writeInput: (inputData: any) => void } {
   const data = new Uint8Array(
-    new SharedArrayBuffer(options.bufferSize || 128 * 1024),
+    new SharedArrayBuffer(bufferSize || 128 * 1024),
   );
   const meta = new Int32Array(
     new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 2),
@@ -81,18 +96,20 @@ export function makeAtomicsChannel(options = {}) {
   };
 }
 
-export async function makeServiceWorkerChannel(options = {}) {
+export async function makeServiceWorkerChannel(
+  options: { timeout?: number } = {}
+): Promise<{ channel: ServiceWorkerChannel, writeInput: (inputData: any, messageId: string) => Promise<void> }> {
   const registration = await navigator.serviceWorker.ready;
   const baseUrl = registration.scope + BASE_URL_SUFFIX;
 
   const timeout = options.timeout || 5000;
-  const startTime = new Date();
+  const startTime = Date.now();
   while (true) {
     const response = await fetch(baseUrl + "/version");
     if (response.status === 200 && (await response.text()) === "v1") {
       break;
     }
-    if (new Date() - startTime < timeout) {
+    if (Date.now() - startTime < timeout) {
       await asyncSleep(100);
     } else {
       return null;
@@ -114,10 +131,17 @@ export async function makeServiceWorkerChannel(options = {}) {
   };
 }
 
-export function readChannel(channel, messageId, options = {}) {
+export function readChannel(channel: Channel, messageId: string, {
+  checkInterrupt,
+  checkTimeout,
+  timeout
+}: {
+  checkInterrupt?: () => boolean;
+  checkTimeout?: number;
+  timeout?: number;
+} = {}) {
   const startTime = performance.now();
 
-  let {checkInterrupt, checkTimeout, timeout} = options;
   checkTimeout = checkTimeout > 0 ? +checkTimeout : checkInterrupt ? 100 : 5000;
   const totalTimeout = timeout > 0 ? +timeout : Number.POSITIVE_INFINITY;
   let check;
@@ -175,7 +199,7 @@ export function readChannel(channel, messageId, options = {}) {
   }
 }
 
-export function syncSleep(ms, channel) {
+export function syncSleep(ms: number, channel: Channel) {
   if (typeof SharedArrayBuffer !== "undefined") {
     const arr = new Int32Array(
       new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT),
@@ -188,20 +212,22 @@ export function syncSleep(ms, channel) {
   }
 }
 
-export let uuidv4;
+export let uuidv4: () => string;
 
-if (crypto.randomUUID) {
+if ("randomUUID" in crypto) {
   uuidv4 = function uuidv4() {
-    return crypto.randomUUID();
+    return (crypto as any).randomUUID();
   };
 } else {
   // https://stackoverflow.com/a/2117523/2482744
   uuidv4 = function uuidv4() {
-    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
-      (
-        c ^
-        (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
-      ).toString(16),
+    return ('10000000-1000-4000-8000-100000000000').replace(/[018]/g, (char) => {
+        const c = Number(char);
+        return (
+          c ^
+          (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+        ).toString(16);
+      },
     );
   };
 }

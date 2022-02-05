@@ -4,7 +4,7 @@ module.exports = {
   mode: "development",
   entry: {
     index: "./index.js",
-    sw: "./sw.js",
+    sw: "./sw.ts",
   },
   devServer: {
     static: "./dist",
@@ -18,4 +18,16 @@ module.exports = {
     filename: "[name].js",
   },
   plugins: [new HtmlWebpackPlugin({excludeChunks: ["sw"]})],
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      },
+    ],
+  },
+  resolve: {
+    extensions: ['.ts', '.js'],
+  },
 };
