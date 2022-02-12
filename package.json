@@ -1,6 +1,6 @@
 {
   "name": "sync-message",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": false,
   "description": "Synchronous communication between the main browser thread and web workers",
   "repository": {
@@ -10,7 +10,7 @@
   "license": "MIT",
   "author": "Alex Hall <alex.mojaki@gmail.com>",
   "sideEffects": false,
-  "main": "dist/index.ts",
+  "main": "dist/index.js",
   "types": "dist/lib/index.d.ts",
   "module": "lib/",
   "files": [
