@@ -170,6 +170,10 @@ export function makeServiceWorkerChannel(
   return {type: "serviceWorker", baseUrl, timeout: options.timeout || 5000};
 }
 
+function ensurePositiveNumber(n: number, defaultValue: number) {
+  return n > 0 ? +n : defaultValue;
+}
+
 export function readMessage(channel: Channel, messageId: string, {
   checkInterrupt,
   checkTimeout,
@@ -181,8 +185,8 @@ export function readMessage(channel: Channel, messageId: string, {
 } = {}) {
   const startTime = performance.now();
 
-  checkTimeout = checkTimeout > 0 ? +checkTimeout : checkInterrupt ? 100 : 5000;
-  const totalTimeout = timeout > 0 ? +timeout : Number.POSITIVE_INFINITY;
+  checkTimeout = ensurePositiveNumber(checkTimeout, checkInterrupt ? 100 : 5000);
+  const totalTimeout = ensurePositiveNumber(timeout, Number.POSITIVE_INFINITY);
   let check;
 
   if (channel.type === "atomics") {
@@ -246,6 +250,11 @@ export function readMessage(channel: Channel, messageId: string, {
 }
 
 export function syncSleep(ms: number, channel: Channel) {
+  ms = ensurePositiveNumber(ms, 0);
+  if (!ms) {
+    return;
+  }
+
   if (typeof SharedArrayBuffer !== "undefined") {
     const arr = new Int32Array(
       new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT),
