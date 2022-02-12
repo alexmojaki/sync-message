@@ -10,7 +10,7 @@
   "license": "MIT",
   "author": "Alex Hall <alex.mojaki@gmail.com>",
   "sideEffects": false,
-  "main": "dist/index.js",
+  "main": "dist/index.ts",
   "types": "dist/lib/index.d.ts",
   "module": "lib/",
   "files": [

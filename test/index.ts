@@ -1,21 +1,27 @@
-import Worker from "worker-loader!./worker";
+import {makeChannel, writeMessage} from "../lib";
+
+const Worker = require("worker-loader!./worker").default;
 import * as Comlink from "comlink";
 
 import * as lib from "../lib";
 
 async function runTests() {
   await navigator.serviceWorker.register("./sw.js");
-  const serviceWorkerChannel = await lib.makeServiceWorkerChannel();
-  if (!serviceWorkerChannel) {
-    location.reload();
+  const serviceWorkerChannel = lib.makeServiceWorkerChannel({timeout: 1000});
+  try {
+    await writeMessage(serviceWorkerChannel, "test", "foo");
+  } catch (e) {
+    console.error(e);
+    window.location.reload();
   }
 
-  const channels = [serviceWorkerChannel];
-  if (typeof SharedArrayBuffer !== "undefined") {
+  const channels: lib.Channel[] = [serviceWorkerChannel];
+  const hasSAB = typeof SharedArrayBuffer !== "undefined";
+  if (hasSAB) {
     channels.push(lib.makeAtomicsChannel());
   }
 
-  const {testRead, testInterrupt, testSleep} = Comlink.wrap(new Worker());
+  const {testRead, testInterrupt, testSleep} = Comlink.wrap(new Worker()) as any;
   const testResults = [];
   let test = "uuid";
 
@@ -32,13 +38,25 @@ async function runTests() {
     });
   }
 
+  {
+    test = "makeChannel";
+    const {type} = makeChannel();
+    const expectedType: typeof type = hasSAB ? "atomics" : "serviceWorker";
+      testResults.push({
+        test,
+        type,
+        expectedType,
+        passed: type === expectedType,
+      });
+  }
+
   test = "read_serial";
-  for (const {channel, writeInput} of channels) {
+  for (const channel of channels) {
     for (let i = 0; i < 100; i++) {
       const messageId = lib.uuidv4();
       const message = lib.uuidv4();
       const readPromise = testRead(channel, messageId);
-      await writeInput({message}, messageId);
+      await lib.writeMessage(channel, {message}, messageId);
       const response = (await readPromise).message;
       testResults.push({
         message,
@@ -53,7 +71,7 @@ async function runTests() {
   }
 
   test = "interrupt";
-  for (const {channel} of channels) {
+  for (const channel of channels) {
     for (let i = 0; i < 3; i++) {
       const readPromise = testInterrupt(channel);
       const passed = await readPromise;
@@ -66,7 +84,7 @@ async function runTests() {
     }
   }
 
-  const {channel, writeInput} = serviceWorkerChannel;
+  const channel = serviceWorkerChannel;
   let promises = [],
     localResults;
 
@@ -75,7 +93,7 @@ async function runTests() {
     const messageId = lib.uuidv4();
     const message = lib.uuidv4();
     const readPromise = testRead(channel, messageId);
-    const writePromise = writeInput(message, messageId);
+    const writePromise = writeMessage(channel, message, messageId);
     promises.push(readPromise, writePromise);
     testResults.push({
       test,
@@ -98,7 +116,7 @@ async function runTests() {
   await lib.asyncSleep(500);
   for (const result of localResults) {
     const message = lib.uuidv4();
-    const writePromise = writeInput(message, result.messageId);
+    const writePromise = writeMessage(channel, message, result.messageId);
     promises.push(writePromise);
     testResults.push({test, channel: channel.type, message, ...result});
   }
@@ -108,7 +126,7 @@ async function runTests() {
   for (let i = 0; i < 100; i++) {
     const messageId = lib.uuidv4();
     const message = lib.uuidv4();
-    const writePromise = writeInput(message, messageId);
+    const writePromise = writeMessage(channel, message, messageId);
     promises.push(writePromise);
     localResults.push({message, messageId, i});
   }
@@ -138,7 +156,7 @@ async function runTests() {
     });
   }
 
-  window.testResults = testResults;
+  (window as any).testResults = testResults;
   console.log(testResults);
 
   let numPassed = testResults.filter((t) => t.passed).length;

@@ -1,4 +1,20 @@
-const BASE_URL_SUFFIX = "/__SyncMessageServiceWorkerInput__";
+const BASE_URL_SUFFIX = "__SyncMessageServiceWorkerInput__";
+const VERSION = "__sync-message-v2__";
+
+interface ServiceWorkerReadRequest {
+  messageId: string;
+  timeout: number;
+}
+
+interface ServiceWorkerWriteRequest {
+  messageId: string;
+  message: string;
+}
+
+interface ServiceWorkerResponse {
+  message: any;
+  version: string;
+}
 
 export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
   const earlyMessages: { [messageId: string]: any } = {};
@@ -11,12 +27,13 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
     }
 
     async function respond(): Promise<Response> {
-      function success(d: any) {
-        return new Response(JSON.stringify(d), {status: 200});
+      function success(message: any) {
+        const response: ServiceWorkerResponse = {message, version: VERSION};
+        return new Response(JSON.stringify(response), {status: 200});
       }
 
       if (url.endsWith("/read")) {
-        const {messageId, timeout} = await e.request.json();
+        const {messageId, timeout}: ServiceWorkerReadRequest = await e.request.json();
         const data = earlyMessages[messageId];
         if (data) {
           delete earlyMessages[messageId];
@@ -34,17 +51,17 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
           });
         }
       } else if (url.endsWith("/write")) {
-        const {data, messageId} = await e.request.json();
+        const {message, messageId}: ServiceWorkerWriteRequest = await e.request.json();
         const resolver = resolvers[messageId];
         if (resolver) {
-          resolver(success(data));
+          resolver(success(message));
           delete resolvers[messageId];
         } else {
-          earlyMessages[messageId] = data;
+          earlyMessages[messageId] = message;
         }
-        return success(data);
+        return success({early: !resolver});
       } else if (url.endsWith("/version")) {
-        return new Response("v1", {status: 200});
+        return new Response(VERSION, {status: 200});
       }
     }
 
@@ -57,6 +74,15 @@ export function asyncSleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export interface AtomicsChannelOptions {
+  bufferSize?: number;
+}
+
+export interface ServiceWorkerChannelOptions {
+  timeout?: number;
+  scope?: string;
+}
+
 export interface AtomicsChannel {
   type: "atomics";
   data: Uint8Array;
@@ -66,72 +92,85 @@ export interface AtomicsChannel {
 export interface ServiceWorkerChannel {
   type: "serviceWorker";
   baseUrl: string;
+  timeout: number;
 }
 
 export type Channel = AtomicsChannel | ServiceWorkerChannel;
 
+export function writeMessageAtomics(channel: AtomicsChannel, message: any) {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(JSON.stringify(message));
+  const {data, meta} = channel;
+  if (bytes.length > data.length) {
+    throw "Input is too long";
+  }
+  data.set(bytes, 0);
+  Atomics.store(meta, 0, bytes.length);
+  Atomics.store(meta, 1, 1);
+  Atomics.notify(meta, 1);
+}
+
+export async function writeMessageServiceWorker(channel: ServiceWorkerChannel, message: any, messageId: string) {
+  await navigator.serviceWorker.ready;
+  const url = channel.baseUrl + "/write";
+  const startTime = Date.now();
+  while (true) {
+    const request: ServiceWorkerWriteRequest = {message, messageId};
+    const response = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    if (response.status === 200 && (await response.json()).version === VERSION) {
+      return;
+    }
+    if (Date.now() - startTime < channel.timeout) {
+      await asyncSleep(100);
+      continue;
+    }
+    throw Error(`Received status ${response.status} from ${url}. Ensure the service worker is registered and active.`);
+  }
+}
+
+export async function writeMessage(channel: Channel, message: any, messageId: string) {
+  if (channel.type === "atomics") {
+    writeMessageAtomics(channel, message);
+  } else {
+    await writeMessageServiceWorker(channel, message, messageId);
+  }
+}
+
+export function makeChannel(
+  options: { atomics?: AtomicsChannelOptions, serviceWorker?: ServiceWorkerChannelOptions } = {}
+): Channel | null {
+  if (typeof SharedArrayBuffer !== "undefined") {
+    return makeAtomicsChannel(options.atomics);
+  } else if ("serviceWorker" in navigator) {
+    return makeServiceWorkerChannel(options.serviceWorker);
+  } else {
+    return null;
+  }
+}
+
 export function makeAtomicsChannel(
-  {bufferSize}: { bufferSize?: number } = {}
-): { channel: AtomicsChannel, writeInput: (inputData: any) => void } {
+  {bufferSize}: AtomicsChannelOptions = {}
+): AtomicsChannel {
   const data = new Uint8Array(
     new SharedArrayBuffer(bufferSize || 128 * 1024),
   );
   const meta = new Int32Array(
     new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 2),
   );
-  const encoder = new TextEncoder();
-
-  return {
-    channel: {type: "atomics", data, meta},
-    writeInput: function (inputData) {
-      const bytes = encoder.encode(JSON.stringify(inputData));
-      if (bytes.length > data.length) {
-        throw "Input is too long";
-      }
-      data.set(bytes, 0);
-      Atomics.store(meta, 0, bytes.length);
-      Atomics.store(meta, 1, 1);
-      Atomics.notify(meta, 1);
-    },
-  };
+  return {type: "atomics", data, meta};
 }
 
-export async function makeServiceWorkerChannel(
-  options: { timeout?: number } = {}
-): Promise<{ channel: ServiceWorkerChannel, writeInput: (inputData: any, messageId: string) => Promise<void> }> {
-  const registration = await navigator.serviceWorker.ready;
-  const baseUrl = registration.scope + BASE_URL_SUFFIX;
-
-  const timeout = options.timeout || 5000;
-  const startTime = Date.now();
-  while (true) {
-    const response = await fetch(baseUrl + "/version");
-    if (response.status === 200 && (await response.text()) === "v1") {
-      break;
-    }
-    if (Date.now() - startTime < timeout) {
-      await asyncSleep(100);
-    } else {
-      return null;
-    }
-  }
-
-  return {
-    channel: {type: "serviceWorker", baseUrl},
-    writeInput: async function (data, messageId) {
-      const url = baseUrl + "/write";
-      const {status} = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify({data, messageId}),
-      });
-      if (status !== 200) {
-        throw Error(`Received status ${status} from ${url}`);
-      }
-    },
-  };
+export function makeServiceWorkerChannel(
+  options: ServiceWorkerChannelOptions = {}
+): ServiceWorkerChannel {
+  const baseUrl = (options.scope || "/") + BASE_URL_SUFFIX;
+  return {type: "serviceWorker", baseUrl, timeout: options.timeout || 5000};
 }
 
-export function readChannel(channel: Channel, messageId: string, {
+export function readMessage(channel: Channel, messageId: string, {
   checkInterrupt,
   checkTimeout,
   timeout
@@ -168,15 +207,22 @@ export function readChannel(channel: Channel, messageId: string, {
       // `false` makes the request synchronous
       const url = channel.baseUrl + "/read";
       request.open("POST", url, false);
-      request.send(JSON.stringify({messageId, timeout: checkTimeout}));
+      const requestBody: ServiceWorkerReadRequest = {messageId, timeout: checkTimeout};
+      request.send(JSON.stringify(requestBody));
       const {status} = request;
 
       if (status === 408) {
         return null;
       } else if (status === 200) {
-        return JSON.parse(request.responseText);
+        const response = JSON.parse(request.responseText);
+        if (response.version !== VERSION) {
+          return null;
+        }
+        return response.message;
+      } else if (performance.now() - startTime < channel.timeout) {
+        return null;
       } else {
-        throw Error(`Received status ${status} from ${url}`);
+        throw Error(`Received status ${status} from ${url}. Ensure the service worker is registered and active.`);
       }
     };
   }
@@ -208,7 +254,7 @@ export function syncSleep(ms: number, channel: Channel) {
     Atomics.wait(arr, 0, 0, ms);
   } else {
     const messageId = `sleep ${ms} ${uuidv4()}`;
-    readChannel(channel, messageId, {timeout: ms});
+    readMessage(channel, messageId, {timeout: ms});
   }
 }
 
