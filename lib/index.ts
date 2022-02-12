@@ -95,6 +95,14 @@ export interface ServiceWorkerChannel {
   timeout: number;
 }
 
+export class ServiceWorkerError extends Error {
+  constructor(public url: string, public status: number) {
+    super(`Received status ${status} from ${url}. Ensure the service worker is registered and active.`);
+    // See https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work for info about this workaround.
+    Object.setPrototypeOf(this, ServiceWorkerError.prototype);
+  }
+}
+
 export type Channel = AtomicsChannel | ServiceWorkerChannel;
 
 export function writeMessageAtomics(channel: AtomicsChannel, message: any) {
@@ -127,7 +135,7 @@ export async function writeMessageServiceWorker(channel: ServiceWorkerChannel, m
       await asyncSleep(100);
       continue;
     }
-    throw Error(`Received status ${response.status} from ${url}. Ensure the service worker is registered and active.`);
+    throw new ServiceWorkerError(url, response.status);
   }
 }
 
@@ -226,7 +234,7 @@ export function readMessage(channel: Channel, messageId: string, {
       } else if (performance.now() - startTime < channel.timeout) {
         return null;
       } else {
-        throw Error(`Received status ${status} from ${url}. Ensure the service worker is registered and active.`);
+        throw new ServiceWorkerError(url, status);
       }
     };
   }

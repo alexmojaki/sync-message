@@ -1,4 +1,4 @@
-import {makeChannel, writeMessage} from "../lib";
+import {makeChannel, ServiceWorkerError, writeMessage} from "../lib";
 
 const Worker = require("worker-loader!./worker").default;
 import * as Comlink from "comlink";
@@ -11,8 +11,11 @@ async function runTests() {
   try {
     await writeMessage(serviceWorkerChannel, "test", "foo");
   } catch (e) {
-    console.error(e);
-    window.location.reload();
+    if (e instanceof ServiceWorkerError) {
+      window.location.reload();
+    } else {
+      throw e;
+    }
   }
 
   const channels: lib.Channel[] = [serviceWorkerChannel];
