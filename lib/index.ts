@@ -110,7 +110,7 @@ export function writeMessageAtomics(channel: AtomicsChannel, message: any) {
   const bytes = encoder.encode(JSON.stringify(message));
   const {data, meta} = channel;
   if (bytes.length > data.length) {
-    throw "Input is too long";
+    throw new Error("Message is too big, increase bufferSize when making channel.");
   }
   data.set(bytes, 0);
   Atomics.store(meta, 0, bytes.length);
