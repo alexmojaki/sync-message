@@ -10,13 +10,13 @@ A small library for synchronous communication between the main browser thread an
 
 1. Setup your application to support at least one of the two types of channel:
    - To enable channels using `Atomics` and `SharedArrayBuffer`, [enable cross-origin isolation](https://web.dev/cross-origin-isolation-guide/#enable-cross-origin-isolation). Note that even with cross-origin isolation, browser support is still shaky.
-   - To enable channels using service workers, register a service worker script which uses this library's `serviceWorkerFetchListener`.
-3. Create a channel object with `makeChannel`.
-4. Send the channel object to your web worker via the standard `postMessage` or your favourite wrapper library such as `Comlink`.
-5. When the worker needs to get data from the main thread:
+   - To enable channels using service workers, register a service worker script which uses this library's [`serviceWorkerFetchListener`](#serviceworkerfetchlistener).
+2. Create a channel object with [`makeChannel`](#makechannel).
+3. Send the channel object to your web worker via the standard `postMessage` or your favourite wrapper library such as `Comlink`.
+4. When the worker needs to get data from the main thread:
    1. In the worker, send a unique `messageId` string back to the main thread, again with the usual `postMessage` etc. The function `uuidv4` is provided to make this easy.
-   2. Still in the worker, call `readMessage(channel, messageId, options)` which will block until it receives and returns a message.
-   3. In the main thread, use the `messageId` sent in step 1 to call `writeMessage(channel, message, messageId)`. `message` will be encoded and decoded using `JSON`.
+   2. Still in the worker, call [`readMessage(channel, messageId, options)`](#readmessage) which will block until it receives and returns a message.
+   3. In the main thread, use the `messageId` sent in step 1 to call [`writeMessage(channel, message, messageId)`](#writemessage). `message` will be encoded and decoded using `JSON`.
 
 So your code in the main thread should look something like this:
 
