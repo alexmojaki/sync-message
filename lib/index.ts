@@ -16,6 +16,11 @@ interface ServiceWorkerResponse {
   version: string;
 }
 
+/**
+ * Returns a function that can respond to fetch events in a service worker event listener.
+ * The function returns true if the request came from this library and it responded.
+ * Call `serviceWorkerFetchListener` and reuse the returned function as it manages internal state.
+ */
 export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
   const earlyMessages: { [messageId: string]: any } = {};
   const resolvers: { [messageId: string]: (r: Response) => void } = {};
@@ -70,32 +75,57 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
   };
 }
 
+/**
+ * Convenience function that allows writing `await asyncSleep(1000)`
+ * to wait one second before continuing in an async function.
+ */
 export function asyncSleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Options for making an atomics type channel.
+ */
 export interface AtomicsChannelOptions {
+  // The number of bytes to allocate for the `SharedArrayBuffer`.
+  // Defaults to 128KiB.
+  // `writeMessage` will throw an error if the message is larger than the buffer size.
   bufferSize?: number;
 }
 
+/**
+ * Options for making a serviceWorker type channel.
+ */
 export interface ServiceWorkerChannelOptions {
-  timeout?: number;
+  // a string representing the prefix of a path/URL, defaulting to `"/"`.
+  // Both `readMessage` and `writeMessage` will make requests that start with this value
+  // so make sure that your service worker is controlling the page and can intercept those requests.
+  // The `scope` property of the registration object returned by `navigator.serviceWorker.register` should work.
   scope?: string;
+
+  // number of milliseconds representing a grace period for the service worker to start up.
+  // If requests made by `readMessage` and `writeMessage` fail,
+  // they will be retried until this timeout is exceeded,
+  // at which point they will throw an error.
+  timeout?: number;
 }
 
-export interface AtomicsChannel {
+interface AtomicsChannel {
   type: "atomics";
   data: Uint8Array;
   meta: Int32Array;
 }
 
-export interface ServiceWorkerChannel {
+interface ServiceWorkerChannel {
   type: "serviceWorker";
   baseUrl: string;
   timeout: number;
 }
 
 export class ServiceWorkerError extends Error {
+  // To avoid having to use instanceof
+  public readonly type = "ServiceWorkerError";
+
   constructor(public url: string, public status: number) {
     super(`Received status ${status} from ${url}. Ensure the service worker is registered and active.`);
     // See https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work for info about this workaround.
@@ -139,6 +169,15 @@ export async function writeMessageServiceWorker(channel: ServiceWorkerChannel, m
   }
 }
 
+/**
+ * Call this in the browser's main UI thread
+ * to send a message to the worker reading from the channel with `readMessage`.
+ *
+ * @param channel a non-null object returned by `makeChannel`, `makeAtomicsChannel`, or `makeServiceWorkerChannel`.
+ * @param message any object that can be safely passed to `JSON.stringify` and then decoded with `JSON.parse`.
+ * @param messageId a unique string identifying the message that the worker is waiting for.
+ *                  Currently only used by service worker channels.
+ */
 export async function writeMessage(channel: Channel, message: any, messageId: string) {
   if (channel.type === "atomics") {
     writeMessageAtomics(channel, message);
@@ -147,6 +186,24 @@ export async function writeMessage(channel: Channel, message: any, messageId: st
   }
 }
 
+/**
+ * Accepts one optional argument `options` with optional keys for configuring the different types of channel.
+ * See the types `AtomicsChannelOptions` and `ServiceWorkerChannelOptions` for more info.
+ *
+ * If `SharedArrayBuffer` is available, `makeChannel` will use it to create an `atomics` type channel.
+ * Otherwise, if `navigator.serviceWorker` is available, it will create a `serviceWorker` type channel,
+ * but registering the service worker is up to you.
+ * If that's not available either, it'll return `null`.
+ *
+ * Channel objects have a `type` property which is either `"atomics"` or `"serviceWorker"`.
+ * The other properties are for internal use.
+ *
+ * If you want to control the type of channel,
+ * you can call `makeAtomicsChannel` or `makeServiceWorkerChannel` directly.
+ *
+ * A single channel object shouldn't be used by multiple workers simultaneously,
+ * i.e. you should only read/write one message at a time.
+ */
 export function makeChannel(
   options: { atomics?: AtomicsChannelOptions, serviceWorker?: ServiceWorkerChannelOptions } = {}
 ): Channel | null {
@@ -182,6 +239,21 @@ function ensurePositiveNumber(n: number, defaultValue: number) {
   return n > 0 ? +n : defaultValue;
 }
 
+/**
+ * Call this in a web worker to synchronously receive a message sent by the main thread with `writeMessage`.
+ *
+ * @param channel a non-null object returned by `makeChannel`, `makeAtomicsChannel`, or `makeServiceWorkerChannel`.
+ *                Should be created once in the main thread and then sent to the worker.
+ * @param messageId a unique string identifying the message that the worker is waiting for.
+ *                  Currently only used by service worker channels.
+ *                  Typically created in the worker using the `uuidv4` function and then sent to the main thread
+ *                  *before* calling `readMessage`.
+ * @param checkInterrupt a function which may be called regularly while `readMessage`
+ *                       is checking for messages on the channel.
+ *                       If it returns `true`, then `readMessage` will return `null`.
+ * @param timeout a number of milliseconds.
+ *                If this much time elapses without receiving a message, `readMessage` will return `null`.
+ */
 export function readMessage(channel: Channel, messageId: string, {
   checkInterrupt,
   checkTimeout,
@@ -257,6 +329,10 @@ export function readMessage(channel: Channel, messageId: string, {
   }
 }
 
+/**
+ * Synchronously waits until the given time has elapsed without wasting CPU in a busy loop,
+ * but not very accurate.
+ */
 export function syncSleep(ms: number, channel: Channel) {
   ms = ensurePositiveNumber(ms, 0);
   if (!ms) {
@@ -275,6 +351,11 @@ export function syncSleep(ms: number, channel: Channel) {
   }
 }
 
+/**
+ * Returns a unique random string in UUID v4 format.
+ * Uses `crypto.randomUUID` directly if possible.
+ * Otherwise uses a custom implementation which uses `crypto.getRandomValues`.
+ */
 export let uuidv4: () => string;
 
 if ("randomUUID" in crypto) {
