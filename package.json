@@ -1,6 +1,6 @@
 {
   "name": "sync-message",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "private": false,
   "description": "Synchronous communication between the main browser thread and web workers",
   "repository": {
