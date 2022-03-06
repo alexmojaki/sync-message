@@ -26,7 +26,6 @@ def get_driver(caps):
             "project": "sync-message",
             "browserstack.localIdentifier": local_identifier,
             "browserstack.console": "verbose",
-            "browserstack.networkLogs": "true",
         }
         driver = webdriver.Remote(
             command_executor=f"https://{browserstack_username}:{browserstack_key}"
