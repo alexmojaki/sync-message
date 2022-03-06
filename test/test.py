@@ -51,7 +51,7 @@ def params():
     if browserstack_key:
         for os_name, extra_browser, os_versions in [
             ["Windows", "Edge", ["11"]],
-            ["OS X", "Safari", ["Monterey"]],
+            ["OS X", "Safari", ["Big Sur"]],
         ]:
             for browser in ["Chrome", "Firefox", extra_browser]:
                 if browser == "Firefox":
