@@ -22,10 +22,11 @@ def get_driver(caps):
         desired_capabilities = {
             **caps,
             "browserstack.local": "true",
-            "acceptSslCerts": "true",
             "build": build,
             "project": "sync-message",
             "browserstack.localIdentifier": local_identifier,
+            "browserstack.console": "verbose",
+            "browserstack.networkLogs": "true",
         }
         driver = webdriver.Remote(
             command_executor=f"https://{browserstack_username}:{browserstack_key}"
@@ -55,13 +56,16 @@ def params():
             for browser in ["Chrome", "Firefox", extra_browser]:
                 if browser == "Firefox":
                     url = "https://localhost:8001"
+                    acceptSslCerts = "true"
                 else:
                     url = "http://localhost:8000"
+                    acceptSslCerts = "false"
                 for os_version in os_versions:
                     caps = dict(
                         os=os_name,
                         os_version=os_version,
                         browser=browser,
+                        acceptSslCerts=acceptSslCerts,
                     )
                     yield caps, url
     else:
