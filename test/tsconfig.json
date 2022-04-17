@@ -9,9 +9,10 @@
     "moduleResolution": "node",
     "lib": [
       "dom",
-      "es5",
+      "es6",
       "scripthost",
-      "webworker"
+      "webworker",
+      "es2017.sharedmemory"
     ]
   }
 }
