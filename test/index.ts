@@ -35,7 +35,7 @@ async function runTests() {
       test,
       i,
       // e.g. 3676018a-94a4-4b07-81c2-dfa14b69b1fd
-      passed: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+      passed: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/.test(
         uuid,
       ),
     });
