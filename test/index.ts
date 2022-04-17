@@ -53,13 +53,33 @@ async function runTests() {
       });
   }
 
-  test = "read_serial";
+  test = "read_then_write_serial";
   for (const channel of channels) {
     for (let i = 0; i < 100; i++) {
       const messageId = lib.uuidv4();
       const message = lib.uuidv4();
       const readPromise = testRead(channel, messageId);
       await lib.writeMessage(channel, {message}, messageId);
+      const response = (await readPromise).message;
+      testResults.push({
+        message,
+        response,
+        messageId,
+        passed: response === message,
+        channel: channel.type,
+        i,
+        test,
+      });
+    }
+  }
+
+  test = "write_then_read_serial";
+  for (const channel of channels) {
+    for (let i = 0; i < 100; i++) {
+      const messageId = lib.uuidv4();
+      const message = lib.uuidv4();
+      await lib.writeMessage(channel, {message}, messageId);
+      const readPromise = testRead(channel, messageId);
       const response = (await readPromise).message;
       testResults.push({
         message,
