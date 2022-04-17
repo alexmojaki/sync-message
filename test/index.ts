@@ -25,7 +25,7 @@ async function runTests() {
   }
 
   const {testRead, testInterrupt, testSleep} = Comlink.wrap(new Worker()) as any;
-  const testResults = [];
+  const testResults: any[] = [];
   let test = "uuid";
 
   for (let i = 0; i < 100; i++) {
