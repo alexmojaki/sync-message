@@ -11,7 +11,6 @@
   "author": "Alex Hall <alex.mojaki@gmail.com>",
   "sideEffects": false,
   "main": "dist/index.js",
-  "module": "lib/",
   "types": "dist/lib/index.d.ts",
   "files": [
     "dist/",
