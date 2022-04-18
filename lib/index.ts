@@ -17,7 +17,7 @@ interface ServiceWorkerResponse {
 }
 
 /**
- * Checks whether the given request is meant for the sync-message service worker
+ * Checks whether the given request is meant to be intercepted by the sync-message serviceWorkerFetchListener.
  */
 export function isServiceWorkerRequest(request: FetchEvent | string): boolean {
   if (typeof request !== "string") {
