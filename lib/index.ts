@@ -17,6 +17,16 @@ interface ServiceWorkerResponse {
 }
 
 /**
+ * Checks whether the given request is meant for the sync-message service worker
+ */
+export function isServiceWorkerRequest(request: FetchEvent | string): boolean {
+  if(typeof request !== "string"){
+    request = request.request.url;
+  }
+  return request.includes(BASE_URL_SUFFIX);
+}
+
+/**
  * Returns a function that can respond to fetch events in a service worker event listener.
  * The function returns true if the request came from this library and it responded.
  * Call `serviceWorkerFetchListener` and reuse the returned function as it manages internal state.
@@ -27,7 +37,7 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
 
   return (e: FetchEvent): boolean => {
     const {url} = e.request;
-    if (!url.includes(BASE_URL_SUFFIX)) {
+    if(!isServiceWorkerRequest(url)){
       return false;
     }
 
