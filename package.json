@@ -15,6 +15,7 @@
   "module": "lib/",
   "files": [
     "dist/",
+    "lib/",
     "LICENSE",
     "README.md"
   ],
