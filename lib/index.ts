@@ -20,7 +20,7 @@ interface ServiceWorkerResponse {
  * Checks whether the given request is meant for the sync-message service worker
  */
 export function isServiceWorkerRequest(request: FetchEvent | string): boolean {
-  if(typeof request !== "string"){
+  if (typeof request !== "string") {
     request = request.request.url;
   }
   return request.includes(BASE_URL_SUFFIX);
@@ -37,7 +37,7 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
 
   return (e: FetchEvent): boolean => {
     const {url} = e.request;
-    if(!isServiceWorkerRequest(url)){
+    if (!isServiceWorkerRequest(url)) {
       return false;
     }
 
