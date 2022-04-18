@@ -22,8 +22,8 @@ interface ServiceWorkerResponse {
  * Call `serviceWorkerFetchListener` and reuse the returned function as it manages internal state.
  */
 export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
-  const earlyMessages: { [messageId: string]: any } = {};
-  const resolvers: { [messageId: string]: (r: Response) => void } = {};
+  const earlyMessages: {[messageId: string]: any} = {};
+  const resolvers: {[messageId: string]: (r: Response) => void} = {};
 
   return (e: FetchEvent): boolean => {
     const {url} = e.request;
@@ -38,7 +38,10 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
       }
 
       if (url.endsWith("/read")) {
-        const {messageId, timeout}: ServiceWorkerReadRequest = await e.request.json();
+        const {
+          messageId,
+          timeout,
+        }: ServiceWorkerReadRequest = await e.request.json();
         const data = earlyMessages[messageId];
         if (data) {
           delete earlyMessages[messageId];
@@ -56,7 +59,10 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
           });
         }
       } else if (url.endsWith("/write")) {
-        const {message, messageId}: ServiceWorkerWriteRequest = await e.request.json();
+        const {
+          message,
+          messageId,
+        }: ServiceWorkerWriteRequest = await e.request.json();
         const resolver = resolvers[messageId];
         if (resolver) {
           resolver(success(message));
@@ -127,7 +133,9 @@ export class ServiceWorkerError extends Error {
   public readonly type = "ServiceWorkerError";
 
   constructor(public url: string, public status: number) {
-    super(`Received status ${status} from ${url}. Ensure the service worker is registered and active.`);
+    super(
+      `Received status ${status} from ${url}. Ensure the service worker is registered and active.`,
+    );
     // See https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work for info about this workaround.
     Object.setPrototypeOf(this, ServiceWorkerError.prototype);
   }
@@ -140,7 +148,9 @@ export function writeMessageAtomics(channel: AtomicsChannel, message: any) {
   const bytes = encoder.encode(JSON.stringify(message));
   const {data, meta} = channel;
   if (bytes.length > data.length) {
-    throw new Error("Message is too big, increase bufferSize when making channel.");
+    throw new Error(
+      "Message is too big, increase bufferSize when making channel.",
+    );
   }
   data.set(bytes, 0);
   Atomics.store(meta, 0, bytes.length);
@@ -148,7 +158,11 @@ export function writeMessageAtomics(channel: AtomicsChannel, message: any) {
   Atomics.notify(meta, 1);
 }
 
-export async function writeMessageServiceWorker(channel: ServiceWorkerChannel, message: any, messageId: string) {
+export async function writeMessageServiceWorker(
+  channel: ServiceWorkerChannel,
+  message: any,
+  messageId: string,
+) {
   await navigator.serviceWorker.ready;
   const url = channel.baseUrl + "/write";
   const startTime = Date.now();
@@ -158,7 +172,10 @@ export async function writeMessageServiceWorker(channel: ServiceWorkerChannel, m
       method: "POST",
       body: JSON.stringify(request),
     });
-    if (response.status === 200 && (await response.json()).version === VERSION) {
+    if (
+      response.status === 200 &&
+      (await response.json()).version === VERSION
+    ) {
       return;
     }
     if (Date.now() - startTime < channel.timeout) {
@@ -178,7 +195,11 @@ export async function writeMessageServiceWorker(channel: ServiceWorkerChannel, m
  * @param messageId a unique string identifying the message that the worker is waiting for.
  *                  Currently only used by service worker channels.
  */
-export async function writeMessage(channel: Channel, message: any, messageId: string) {
+export async function writeMessage(
+  channel: Channel,
+  message: any,
+  messageId: string,
+) {
   if (channel.type === "atomics") {
     writeMessageAtomics(channel, message);
   } else {
@@ -205,7 +226,10 @@ export async function writeMessage(channel: Channel, message: any, messageId: st
  * i.e. you should only read/write one message at a time.
  */
 export function makeChannel(
-  options: { atomics?: AtomicsChannelOptions, serviceWorker?: ServiceWorkerChannelOptions } = {}
+  options: {
+    atomics?: AtomicsChannelOptions;
+    serviceWorker?: ServiceWorkerChannelOptions;
+  } = {},
 ): Channel | null {
   if (typeof SharedArrayBuffer !== "undefined") {
     return makeAtomicsChannel(options.atomics);
@@ -216,12 +240,10 @@ export function makeChannel(
   }
 }
 
-export function makeAtomicsChannel(
-  {bufferSize}: AtomicsChannelOptions = {}
-): AtomicsChannel {
-  const data = new Uint8Array(
-    new SharedArrayBuffer(bufferSize || 128 * 1024),
-  );
+export function makeAtomicsChannel({
+  bufferSize,
+}: AtomicsChannelOptions = {}): AtomicsChannel {
+  const data = new Uint8Array(new SharedArrayBuffer(bufferSize || 128 * 1024));
   const meta = new Int32Array(
     new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 2),
   );
@@ -229,7 +251,7 @@ export function makeAtomicsChannel(
 }
 
 export function makeServiceWorkerChannel(
-  options: ServiceWorkerChannelOptions = {}
+  options: ServiceWorkerChannelOptions = {},
 ): ServiceWorkerChannel {
   const baseUrl = (options.scope || "/") + BASE_URL_SUFFIX;
   return {type: "serviceWorker", baseUrl, timeout: options.timeout || 5000};
@@ -254,18 +276,25 @@ function ensurePositiveNumber(n: number, defaultValue: number) {
  * @param timeout a number of milliseconds.
  *                If this much time elapses without receiving a message, `readMessage` will return `null`.
  */
-export function readMessage(channel: Channel, messageId: string, {
-  checkInterrupt,
-  checkTimeout,
-  timeout
-}: {
-  checkInterrupt?: () => boolean;
-  checkTimeout?: number;
-  timeout?: number;
-} = {}) {
+export function readMessage(
+  channel: Channel,
+  messageId: string,
+  {
+    checkInterrupt,
+    checkTimeout,
+    timeout,
+  }: {
+    checkInterrupt?: () => boolean;
+    checkTimeout?: number;
+    timeout?: number;
+  } = {},
+) {
   const startTime = performance.now();
 
-  checkTimeout = ensurePositiveNumber(checkTimeout, checkInterrupt ? 100 : 5000);
+  checkTimeout = ensurePositiveNumber(
+    checkTimeout,
+    checkInterrupt ? 100 : 5000,
+  );
   const totalTimeout = ensurePositiveNumber(timeout, Number.POSITIVE_INFINITY);
   let check;
 
@@ -291,7 +320,10 @@ export function readMessage(channel: Channel, messageId: string, {
       // `false` makes the request synchronous
       const url = channel.baseUrl + "/read";
       request.open("POST", url, false);
-      const requestBody: ServiceWorkerReadRequest = {messageId, timeout: checkTimeout};
+      const requestBody: ServiceWorkerReadRequest = {
+        messageId,
+        timeout: checkTimeout,
+      };
       request.send(JSON.stringify(requestBody));
       const {status} = request;
 
@@ -365,13 +397,12 @@ if ("randomUUID" in crypto) {
 } else {
   // https://stackoverflow.com/a/2117523/2482744
   uuidv4 = function uuidv4() {
-    return ('10000000-1000-4000-8000-100000000000').replace(/[018]/g, (char) => {
-        const c = Number(char);
-        return (
-          c ^
-          (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
-        ).toString(16);
-      },
-    );
+    return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (char) => {
+      const c = Number(char);
+      return (
+        c ^
+        (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+      ).toString(16);
+    });
   };
 }

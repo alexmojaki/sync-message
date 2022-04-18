@@ -24,7 +24,9 @@ async function runTests() {
     channels.push(lib.makeAtomicsChannel());
   }
 
-  const {testRead, testInterrupt, testSleep} = Comlink.wrap(new Worker()) as any;
+  const {testRead, testInterrupt, testSleep} = Comlink.wrap(
+    new Worker(),
+  ) as any;
   const testResults: any[] = [];
   let test = "uuid";
 
@@ -45,12 +47,12 @@ async function runTests() {
     test = "makeChannel";
     const {type} = makeChannel();
     const expectedType: typeof type = hasSAB ? "atomics" : "serviceWorker";
-      testResults.push({
-        test,
-        type,
-        expectedType,
-        passed: type === expectedType,
-      });
+    testResults.push({
+      test,
+      type,
+      expectedType,
+      passed: type === expectedType,
+    });
   }
 
   test = "read_then_write_serial";

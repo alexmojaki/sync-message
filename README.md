@@ -26,7 +26,7 @@ import {makeChannel, writeMessage} from "sync-message";
 const channel = makeChannel();
 
 // If you want to use a service worker channel
-navigator.serviceWorker.register("service-worker.js")
+navigator.serviceWorker.register("service-worker.js");
 
 // Send the channel to the web worker
 worker.postMessage({channel});
@@ -75,7 +75,7 @@ addEventListener("fetch", function (e) {
 Accepts one optional argument `options` with two optional keys for configuring the different types of channel:
 
 - `atomics` has one option:
-    - `bufferSize`: number of bytes to allocate for the `SharedArrayBuffer`. Defaults to 128KiB. `writeMessage` will throw an error if the message is larger than the buffer size.
+  - `bufferSize`: number of bytes to allocate for the `SharedArrayBuffer`. Defaults to 128KiB. `writeMessage` will throw an error if the message is larger than the buffer size.
 - `serviceWorker` has the following options:
   - `scope`: a string representing the prefix of a path/URL, defaulting to `"/"`. Both `readMessage` and `writeMessage` will make requests that start with this value so make sure that your service worker is controlling the page and can intercept those requests. The `scope` property of the registration object returned by `navigator.serviceWorker.register` should work.
   - `timeout`: number of milliseconds representing a grace period for the service worker to start up. If requests made by `readMessage` and `writeMessage` fail, they will be retried until this timeout is exceeded, at which point they will throw an error.
@@ -111,7 +111,7 @@ Call this in a web worker to synchronously receive a message sent by the main th
 Call this once in a service worker script. Returns a function which accepts a fetch event and responds to requests made by `readMessage` and `writeMessage`. If you don't need to use a service worker for anything else, you can simply write:
 
 ```js
-addEventListener("fetch", serviceWorkerFetchListener())
+addEventListener("fetch", serviceWorkerFetchListener());
 ```
 
 Otherwise, create a listener function *once* and then reuse it:

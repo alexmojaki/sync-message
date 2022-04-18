@@ -6,7 +6,10 @@ import * as lib from "../lib";
 import * as Comlink from "comlink";
 
 function testRead(channel: lib.Channel, messageId: string) {
-  return lib.readMessage(channel, messageId, {checkTimeout: 100, timeout: 5000});
+  return lib.readMessage(channel, messageId, {
+    checkTimeout: 100,
+    timeout: 5000,
+  });
 }
 
 function testInterrupt(channel: lib.Channel) {

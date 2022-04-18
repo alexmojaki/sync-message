@@ -4,10 +4,8 @@
 !*.json
 !*.jsx
 !*.less
-!*.md
-!*.mdx
 !*.ts
 !*.tsx
 !*.yml
 /coverage/
-/dist/
+dist/
