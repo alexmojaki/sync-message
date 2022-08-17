@@ -183,12 +183,20 @@ async function runTests() {
 
   (window as any).testResults = testResults;
   console.log(testResults);
+  log(JSON.stringify(testResults));
 
   let numPassed = testResults.filter((t) => t.passed).length;
   let numTotal = testResults.length;
   let finalResult = numPassed === numTotal ? "PASSED" : "FAILED";
-  const body = document.getElementsByTagName("body")[0];
-  body.innerHTML = `<div id=result>${numPassed} / ${numTotal} : ${finalResult}!</div>`;
+  body.innerHTML = `<h1 id=result>${numPassed} / ${numTotal} : ${finalResult}!</h1>` + body.innerHTML;
 }
 
-runTests();
+const body = document.getElementsByTagName("body")[0];
+function log(text: string) {
+  console.log(text);
+  const elem = document.createElement("pre");
+  elem.textContent = text;
+  body.appendChild(elem);
+}
+
+runTests().catch(log);
