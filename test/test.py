@@ -2,11 +2,13 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from time import sleep
 
 import pytest
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
 assets_dir = Path(__file__).parent / "test_assets"
 assets_dir.mkdir(exist_ok=True)
@@ -19,12 +21,23 @@ local_identifier = os.environ.get("BROWSERSTACK_LOCAL_IDENTIFIER")
 
 def get_driver(caps):
     if browserstack_key:
+        bstack = {
+                "os": caps["os"],
+                "osVersion": caps["os_version"],
+                "projectName": "pyodide-worker-runner",
+                "buildName": build,
+                "local": "true",
+                "networkLogs": "true",
+                "consoleLogs": "verbose",
+            "debug": "true",
+            "seleniumLogs": "true",
+            "appiumLogs": "true",
+        }
+        if local_identifier:
+            bstack["localIdentifier"] = local_identifier
         desired_capabilities = {
             **caps,
-            "browserstack.local": "true",
-            "build": build,
-            "project": "sync-message",
-            "browserstack.localIdentifier": local_identifier,
+            'bstack:options': bstack,
             "browserstack.console": "verbose",
         }
         driver = webdriver.Remote(
@@ -42,7 +55,7 @@ def get_driver(caps):
             options=options,
             desired_capabilities=desired_capabilities,
         )
-    driver.implicitly_wait(30)
+    driver.implicitly_wait(45)
     return driver
 
 
@@ -50,20 +63,24 @@ def params():
     if browserstack_key:
         for os_name, extra_browser, os_versions in [
             ["Windows", "Edge", ["11"]],
-            ["OS X", "Safari", ["Big Sur"]],
+            ["OS X", "Safari", ["Monterey", "Big Sur"]],
         ]:
-            for browser in ["Chrome", "Firefox", extra_browser]:
-                if browser == "Firefox":
-                    url = "https://localhost:8001"
-                    acceptSslCerts = "true"
-                else:
-                    url = "http://localhost:8000"
-                    acceptSslCerts = "false"
-                for os_version in os_versions:
+            for os_version in os_versions:
+                for browser in ["Chrome", "Firefox", extra_browser]:
+                    if browser in ["Firefox"]:
+                        url = "https://localhost:8001"
+                        acceptSslCerts = True
+                    elif browser in ["Safari"] and os_version == "Monterey":
+                        url = "https://localhost:8002"
+                        acceptSslCerts = True
+                    else:
+                        url = "http://localhost:8000"
+                        acceptSslCerts = False
                     caps = dict(
                         os=os_name,
                         os_version=os_version,
-                        browser=browser,
+                        browserName=browser,
+                        acceptInsecurecerts=acceptSslCerts,
                         acceptSslCerts=acceptSslCerts,
                     )
                     yield caps, url
@@ -102,7 +119,8 @@ def test_lib(caps, url):
 
 def _tests(driver, url):
     driver.get(url)
-    elem = driver.find_element_by_id("result")
+    sleep(10)  # Prevent NoSuchFrameException with Safari
+    elem = driver.find_element(By.ID, "result")
     text = elem.text
     print(text)
     assert "PASSED" in text
