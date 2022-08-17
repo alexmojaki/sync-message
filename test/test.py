@@ -67,11 +67,11 @@ def params():
         ]:
             for os_version in os_versions:
                 for browser in ["Chrome", "Firefox", extra_browser]:
-                    if browser in ["Firefox"]:
-                        url = "https://localhost:8001"
-                        acceptSslCerts = True
-                    elif browser in ["Safari"] and os_version == "Monterey":
+                    if browser in ["Safari"] and os_version == "Monterey":
                         url = "https://localhost:8002"
+                        acceptSslCerts = True
+                    elif browser in ["Firefox", "Safari"]:
+                        url = "https://localhost:8001"
                         acceptSslCerts = True
                     else:
                         url = "http://localhost:8000"
