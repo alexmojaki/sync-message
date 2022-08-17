@@ -24,7 +24,7 @@ def get_driver(caps):
         bstack = {
                 "os": caps["os"],
                 "osVersion": caps["os_version"],
-                "projectName": "pyodide-worker-runner",
+                "projectName": "sync-message",
                 "buildName": build,
                 "local": "true",
                 "networkLogs": "true",
