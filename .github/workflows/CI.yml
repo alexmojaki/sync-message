@@ -49,7 +49,7 @@ jobs:
           local-identifier: 'random'
       - name: Test
         run: |
-          pip install pytest pytest-parallel py selenium
+          pip install pytest pytest-parallel py selenium<4.10
           cd test
           ./test.sh
       - name: 'Stop BrowserStackLocal'
