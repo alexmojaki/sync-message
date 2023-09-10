@@ -53,8 +53,9 @@ export function serviceWorkerFetchListener(): (e: FetchEvent) => boolean {
           timeout,
         }: ServiceWorkerReadRequest = await e.request.json();
         if (messageId in earlyMessages) {
+          const message = earlyMessages[messageId];
           delete earlyMessages[messageId];
-          return success(earlyMessages[messageId]);
+          return success(message);
         } else {
           return await new Promise((resolver) => {
             resolvers[messageId] = resolver;
